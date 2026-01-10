@@ -129,7 +129,7 @@ body::before {
 
 .primary-btn {
   width: 100%;
-  margin-bottom: .5rem;
+  margin-bottom: 0.75rem;
   padding: 0.8rem;
   border-radius: 12px;
   border: none;
@@ -139,6 +139,10 @@ body::before {
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primary-btn:last-child {
+  margin-bottom: 0;
 }
 
 .primary-btn:hover {

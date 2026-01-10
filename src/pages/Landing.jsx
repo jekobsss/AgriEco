@@ -11,7 +11,7 @@ export default function Register() {
                 <div className="header">
                     <img src={logo} alt="AgriEco Logo" />
                     <h1>AgriEco Park Entry</h1>
-                    <p>QR-based daily access system</p>
+                    <p>Create your Entry QR Code</p>
                 </div>
 
                 <button
