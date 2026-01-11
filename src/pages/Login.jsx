@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { getLogs, saveLogs } from "../utils/storage"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../utils/supabase"
@@ -12,6 +12,15 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false)
     const [loginMethod, setLoginMethod] = useState("email") // "email" or "studentNumber"
     const navigate = useNavigate()
+
+    useEffect(() => {
+    const logs = getLogs()
+    const user = logs?.[logs.length - 1]
+
+        if (user) {
+            navigate("/home")
+        }
+    }, [])
 
     // Step 1: Handle role selection
     const handleRoleSelect = (selectedRole) => {

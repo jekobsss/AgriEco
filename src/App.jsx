@@ -5,6 +5,8 @@ import Login from "./pages/Login"
 import Landing from "./pages/Landing"
 import Home from "./pages/Home"
 import "./App.css"
+import PublicRoute from "./components/PublicRoute"
+import ProtectedRoute from "./components/ProtectedRoute"
 
 export default function App() {
     return (
@@ -19,11 +21,48 @@ export default function App() {
             </nav>
 
             <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/scan" element={<Scan />} />
-                <Route path="/home" element={<Home />} />
+                <Route
+                    path="/"
+                    element={
+                    <PublicRoute>
+                        <Landing />
+                    </PublicRoute>
+                    }
+                />
+
+                <Route
+                    path="/login"
+                    element={
+                    <PublicRoute>
+                        <Login />
+                    </PublicRoute>
+                    }
+                />
+
+                <Route
+                    path="/register"
+                    element={
+                    <PublicRoute>
+                        <Register />
+                    </PublicRoute>
+                    }
+                />
+                <Route
+                    path="/scan"
+                    element={
+                    <ProtectedRoute>
+                        <Scan />
+                    </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/home"
+                    element={
+                        <ProtectedRoute>
+                        <Home />
+                        </ProtectedRoute>
+                    }
+                />
             </Routes>
         </>
     )

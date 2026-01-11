@@ -54,23 +54,36 @@ export default function Home() {
     }
 
     useEffect(() => {
-        const logs = getLogs()
-        if (!Array.isArray(logs) || logs.length === 0) return
+        const init = async () => {
+            const logs = getLogs()
+            if (!logs || logs.length === 0) return
 
-        const latestUser = logs[logs.length - 1]
-        setUser(latestUser)
+            const latestUser = logs[logs.length - 1]
+            setUser(latestUser)
 
-        const today = new Date().toDateString()
-        const expiry = getTodayExpiry()
+            const now = new Date().toISOString()
 
-        if (latestUser.qrDate === today && latestUser.qrData) {
-            setHasQrToday(true)
-            setQrUrl(latestUser.qrData)
-            setCreatedAt(latestUser.created_qr_at || "")
-            updateTimer(expiry)
-            const interval = setInterval(() => updateTimer(expiry), 1000)
-            return () => clearInterval(interval)
+            const { data, error } = await supabase
+                .from("qr_codes")
+                .select("*")
+                .eq("users_id", latestUser.id)
+                .eq("is_active", true)
+                .gt("expires_at", now)
+                .single()
+
+            if (data) {
+                setHasQrToday(true)
+                setQrUrl(data.qr_image)
+                setCreatedAt(data.created_qr_at)
+
+                const expiry = new Date(data.expires_at)
+                updateTimer(expiry)
+                const interval = setInterval(() => updateTimer(expiry), 1000)
+                return () => clearInterval(interval)
+            }
         }
+
+        init()
     }, [])
 
     // 🔘 GENERATE QR (ON BUTTON CLICK)
@@ -82,17 +95,7 @@ export default function Home() {
         const expiry = getTodayExpiry()
         const createdQrAt = new Date().toISOString()
 
-        const qrPayload = {
-            id: latestUser.id,
-            role: latestUser.role,
-            firstName: latestUser.firstName,
-            middleName: latestUser.middleName,
-            lastName: latestUser.lastName,
-            email: latestUser.email,
-            contact: latestUser.contact,
-            generatedOn: today,
-            expiresAt: expiry.toISOString()
-        }
+        const qrPayload = { q: crypto.randomUUID().slice(0,8) }
 
         const qr = await QRCode.toDataURL(JSON.stringify(qrPayload))
 
@@ -104,9 +107,10 @@ export default function Home() {
                     id: crypto.randomUUID(),
                     users_id: latestUser.id,
                     qr_image: qr,
+                    qr_payload: qrPayload,
                     created_qr_at: createdQrAt,
                     expires_at: expiry.toISOString(),
-                    is_active: false
+                    is_active: true
                 }
             ])
 
