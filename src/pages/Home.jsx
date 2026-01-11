@@ -28,6 +28,7 @@ export default function Home() {
     const [hasQrToday, setHasQrToday] = useState(false)
     const [createdAt, setCreatedAt] = useState("")
     const navigate = useNavigate()
+    const [expiresAt, setExpiresAt] = useState(null)
 
     // 🕛 today’s expiry
     const getTodayExpiry = () => {
@@ -75,6 +76,7 @@ export default function Home() {
                 setHasQrToday(true)
                 setQrUrl(data.qr_image)
                 setCreatedAt(data.created_qr_at)
+                setExpiresAt(data.expires_at)
 
                 const expiry = new Date(data.expires_at)
                 updateTimer(expiry)
@@ -131,6 +133,7 @@ export default function Home() {
         setQrUrl(qr)
         setHasQrToday(true)
         setCreatedAt(new Date().toISOString())
+        setExpiresAt(expiry.toISOString())
 
         updateTimer(expiry)
         const interval = setInterval(() => updateTimer(expiry), 1000)
@@ -167,6 +170,7 @@ export default function Home() {
         setHasQrToday(false)
         setCreatedAt("")
         setTimeLeft("")
+        setExpiresAt(null)
     }
 
     return (
@@ -175,7 +179,11 @@ export default function Home() {
                 <div className="header">
                     <img src={logo} alt="AgriEco Logo" />
                     <h1>Your Entry QR Code</h1>
-                    <p>Expires at 12:00 AM</p>
+                    <p>
+                    {hasQrToday && expiresAt
+                        ? `Expires at ${new Date(expiresAt).toLocaleString()}`
+                        : "No QR detected. Please generate one."}
+                    </p>
                 </div>
 
                 {!user ? (
