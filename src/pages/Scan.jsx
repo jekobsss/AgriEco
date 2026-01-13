@@ -3,37 +3,52 @@ import { supabase } from "../utils/supabase"
 
 export default function Scan() {
   const [result, setResult] = useState("Waiting for QR")
-  const [status, setStatus] = useState("waiting") // waiting | success | error
+  const [status, setStatus] = useState("waiting")
+  const [visitorCount, setVisitorCount] = useState(0)
 
-useEffect(() => {
-  // Expire old QR codes on page load
-  fetch("https://eaadzfmkoennqcudmrks.supabase.co/functions/v1/expire_qr")
-    .then(res => res.json())
-    .then(data => console.log("Expired QR codes:", data))
-    .catch(err => console.error("Failed to expire QR codes:", err))
+  useEffect(() => {
+    expireOldQRs()
+    loadVisitorCount()
 
-  // Subscribe to new inserts on scan_logs
-  const subscription = supabase
-    .channel("public:scan_logs")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "scan_logs",
-      },
-      (payload) => {
-        handleScan(payload.new.qr_payload)
-      }
-    )
-    .subscribe()
+    const subscription = supabase
+      .channel("public:scan_logs")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "scan_logs",
+        },
+        (payload) => {
+          handleScan(payload.new.qr_payload)
+          loadVisitorCount()   // recalc unique visitors
+        }
+      )
+      .subscribe()
 
-  // Cleanup subscription on unmount
-  return () => {
-    supabase.removeChannel(subscription)
+    return () => {
+      supabase.removeChannel(subscription)
+    }
+  }, [])
+
+  const expireOldQRs = async () => {
+    await fetch("https://eaadzfmkoennqcudmrks.supabase.co/functions/v1/expire_qr")
   }
-}, [])
 
+  const loadVisitorCount = async () => {
+    const today = new Date().toISOString().split("T")[0]
+
+    const { data, error } = await supabase
+      .from("scan_logs")
+      .select("qr_payload")
+      .gte("scanned_at", today)
+
+    if (error) return
+
+    // Deduplicate QR codes
+    const unique = new Set(data.map(row => row.qr_payload))
+    setVisitorCount(unique.size)
+  }
 
   const handleScan = async (payload) => {
     const { data: qrRecord, error } = await supabase
@@ -56,12 +71,6 @@ useEffect(() => {
     }
 
     showResult("Entry Allowed", "success")
-
-    // Optional: Deactivate QR after successful scan
-    // await supabase
-    //   .from("qr_codes")
-    //   .update({ is_active: false })
-    //   .eq("qr_payload", payload)
   }
 
   const showResult = (message, type) => {
@@ -71,32 +80,38 @@ useEffect(() => {
     setTimeout(() => {
       setResult("Waiting for QR")
       setStatus("waiting")
-    }, 5000)
+    }, 4000)
   }
 
   const getColor = () => {
-    if (status === "success") return "#4ade80" // green
-    if (status === "error") return "#f87171" // red
-    return "#9ca3af" // gray
+    if (status === "success") return "#4ade80"
+    if (status === "error") return "#f87171"
+    return "#9ca3af"
   }
 
   return (
     <div style={{ textAlign: "center" }}>
-      <h1 style={{ marginBottom: "40px" }}>AgriEco Gate Scanner</h1>
+      <h1 style={{ marginBottom: "10px" }}>AgriEco Gate Scanner</h1>
+
+      <h2 style={{ color: "#16a34a", marginBottom: "30px" }}>
+        Visitors Today: {visitorCount}
+      </h2>
+
       <div
         style={{
           display: "inline-block",
-          padding: "40px 60px",
-          borderRadius: "15px",
+          padding: "60px 80px",
+          borderRadius: "20px",
           backgroundColor: "#ffffff",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+          minWidth: "400px",
         }}
       >
-        <h2 style={{ color: getColor(), fontSize: "2rem" }}>{result}</h2>
+        <h2 style={{ fontSize: "2.5rem", color: getColor() }}>{result}</h2>
+        <p style={{ marginTop: "20px", color: "#6b7280" }}>
+          Scan your QR code to enter
+        </p>
       </div>
-      <p style={{ marginTop: "20px", color: "#6b7280" }}>
-        Scan your QR code to check in
-      </p>
     </div>
   )
 }
